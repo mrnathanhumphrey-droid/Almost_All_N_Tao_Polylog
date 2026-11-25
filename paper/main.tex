@@ -1,0 +1,806 @@
+% A shorter route to Tao's almost-bounded-orbits theorem via a polylogarithmic Fourier input
+% Nathan Humphrey, 2026. Licensed under CC BY 4.0. Build with pdflatex + biber (biblatex).
+
+\documentclass[11pt]{amsart}
+
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage[margin=1.1in]{geometry}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\hypersetup{
+  pdftitle={A shorter route to Tao's almost-bounded-orbits theorem via a polylogarithmic Fourier input},
+  pdfauthor={Nathan Humphrey},
+  pdfkeywords={Collatz map, Syracuse random variable, characteristic function, renewal process}
+}
+\usepackage[backend=biber,style=alphabetic,maxalphanames=3]{biblatex}
+\addbibresource{refs.bib}
+
+% ---------- theorem environments ----------
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}{Conjecture}[section]
+\newtheorem{lemmaL}{Lemma}            % lettered lemmas A, B, C
+\renewcommand{\thelemmaL}{\Alph{lemmaL}}
+\newtheorem{propL}[lemmaL]{Proposition} % Proposition D shares the letter counter
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{tresult}[lemma]{Result}   % results quoted from [T]; shares the lemma counter
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}[section]
+\newtheorem*{remark*}{Remark}
+
+% ---------- macros ----------
+\newcommand{\E}{\mathbb{E}}
+\renewcommand{\P}{\mathbb{P}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\e}{e}                       % e(x) := e^{2\pi i x}
+\newcommand{\Syrac}{\mathrm{Syrac}}
+\newcommand{\Osc}{\mathrm{Osc}}
+\newcommand{\Hold}{\mathrm{Hold}}
+\newcommand{\Geom}{\mathrm{Geom}}
+\newcommand{\T}[1]{\cite[#1]{Tao22}}   % [T, Lemma 7.4]
+\newcommand{\Tc}{\cite{Tao22}}         % [T]
+\newcommand{\Col}{\mathrm{Col}}
+\newcommand{\Colmin}{\mathrm{Col}_{\min}}
+\theoremstyle{plain}
+\newtheorem*{thmT}{Theorem}
+
+\title[A shorter route to Tao's theorem]{A shorter route to Tao's almost-bounded-orbits theorem via a polylogarithmic Fourier input}
+\author{Nathan Humphrey}
+\date{\today}
+
+\begin{document}
+
+\begin{abstract}
+% VERBATIM from the draft, except \varepsilon -> \delta (adopted rename).
+Tao's Theorem~1.3 in \Tc{} (almost all Collatz orbits attain almost bounded values) rests on superpolynomial decay of the characteristic function of the Syracuse random variable (Proposition~1.17). We show that the polylogarithmic input
+\[
+\Phi(n)\ \ll\ n^{-1/4}(\log n)^{-3/2-\delta},\qquad
+\Phi(n):=\sup_{3\nmid\xi}\Big|\E\, \e\big(\xi\,\Syrac(\Z/3^n\Z)/3^n\big)\Big|,
+\]
+already suffices. To do this we rework \S6 of \Tc{} using a stopping threshold with no buffer and an overflow count, so that Corollary~6.3 is never used. We then supply this input by combining three things: (i) a pointwise bound for $\Phi(n)$ in terms of the $\ell^2$ mass $I_L$ of the level-$L$ characteristic function, sharpened by inserting Tao's \S7 pairing; (ii) a version of Tao's \S7 induction with logarithmic rather than polynomial weights, which needs only Cases~1--2 of the proof of Proposition~7.8 (no Case~3, no Lemmas~7.9--7.10); (iii) the elementary collision bound $3^L\sum_x\P(X_L=x)^2=O(L^2)$. The result is $\Phi(n)\ll n^{-1/4}(\log n)^{-2}(\log\log n)^{3}$, and Theorem~1.3 follows.
+
+This note simplifies Tao's proof. It is not a new result about the Collatz map. The ingredients are Tao's own; what changes is that each step is required to prove less.
+\end{abstract}
+
+\maketitle
+
+% ---------- AI-use disclosure: VERBATIM, keep exactly this strong ----------
+\noindent\textbf{Disclosure of AI use.} This note was produced with substantial use of AI systems (Anthropic's Claude models), working under the author's direction. AI agents developed the arguments, checked them numerically, and reviewed them adversarially against the text of \Tc; the text itself was drafted with heavy assistance by AI. The author has not yet had the arguments checked by an independent human expert, and is responsible for any errors.
+
+\medskip
+\noindent\textit{Convention.} All section, lemma and equation numbers of the form ``Lemma~7.4'', ``(7.51)'' refer to Tao, arXiv:1909.03562v7 (16 July 2026), cited as \Tc.
+
+% ======================================================================
+\section{Introduction}
+
+% (I1) The problem
+The Collatz map $\Col\colon\mathbb N+1\to\mathbb N+1$ sends $N$ to $N/2$ if $N$ is even and to $3N+1$ if $N$ is odd. The Collatz conjecture asserts that every orbit eventually reaches $1$. It remains open; see \cite{Lag85} for a survey. Write $\Colmin(N)$ for the least element of the orbit of $N$.
+
+% (I2) Prior almost-all results
+The strongest unconditional results concern almost all starting points. Terras \cite{Ter76}, and independently Everett \cite{Eve77}, showed that $\Colmin(N)<N$ for almost all $N$. Allouche \cite{All79} improved this to $\Colmin(N)<N^{\theta}$ for any fixed $\theta>0.869$, and Korec \cite{Kor94} extended the range to $\theta>\log3/\log4\approx0.7924$. Tao \Tc{} then showed that the threshold can be taken to grow as slowly as one likes.
+
+% (I3) Tao's theorem, quoted from v7
+\begin{thmT}[{\T{Theorem 1.3}}]
+Let $f\colon\mathbb N+1\to\mathbb R$ be any function with $\lim_{N\to\infty}f(N)=+\infty$. Then $\Colmin(N)<f(N)$ for almost all $N\in\mathbb N+1$, in the sense of logarithmic density.
+\end{thmT}
+
+% (I4) The two halves of Tao's proof
+Tao passes to the Syracuse map, which records only the odd steps of an orbit, and models those steps by the Syracuse random variable $\Syrac(\Z/3^n\Z)$ (defined in \S\ref{sec:notation}). His proof has two halves. The first, \S\S2--6 of \Tc, reduces Theorem~1.3 to a fine-scale mixing property of $\Syrac(\Z/3^n\Z)$ \T{Proposition 1.14}. The second, \S7 of \Tc, supplies the Fourier estimate behind that property: the characteristic function of $\Syrac(\Z/3^n\Z)$ at any frequency not divisible by $3$ is $O_A(n^{-A})$ for every $A>0$ \T{Proposition 1.17}. In the notation of \S\ref{sec:notation}, this says $\Phi(n)\ll_A n^{-A}$ for every $A$.
+
+% (I5) Where superpolynomial decay is needed, and what it costs
+Decay faster than every power of $n$ is needed at one point. In \S6 of \Tc, Corollary~6.3 requires a buffer that costs a factor $n^{O(C_A^2)}$, and only superpolynomial decay can absorb it. Producing that decay in \S7 then takes a three-case induction (Cases~1--3 in the proof of Proposition~7.8) and two further lemmas (Lemmas~7.9--7.10) to handle deep triangles.
+
+% (I6) Aim
+The aim of this note is to show that both halves can be asked to prove less: \S6 of \Tc{} needs only $\Phi(n)\ll n^{-1/4}(\log n)^{-3/2-\delta}$, and \S7 of \Tc{} can supply that bound using only Cases~1--2 in the proof of Proposition~7.8.
+
+% (I7) Theorem 1 + commentary
+\begin{theorem}[Reduction]\label{thm:reduction}
+Suppose $\Phi(N)\le C_*N^{-1/4}(\log N)^{-\beta}$ for all $N\ge2$, for some $\beta>3/2$. Then for some $\gamma>1$, Proposition~1.11 holds with (1.20) replaced by $d_{TV}\ll(\log\log x)^{-\gamma}$. Theorem~3.1 then holds with right-hand side $O((\log\log N_0)^{-(\gamma-1)})$, and Theorems~1.6 and~1.3 follow.
+\end{theorem}
+
+Theorem~\ref{thm:reduction} replaces \S6 of \Tc{} by Lemma~\ref{lem:A} below, which stops at a threshold with no buffer and counts the resulting overflow directly. The weaker input then passes through \S\S5 and~3 of \Tc{} with only the rate changed.
+
+% (I8) Theorem 2 + commentary
+\begin{theorem}[The Fourier input]\label{thm:input}
+For every $B\ge1$ and every $n\ge2$,
+\[
+\Phi(n)\ \ll_B\ n^{-1/4}(\log n)^{1-B/2}(\log\log n)^{B/2}.
+\]
+In particular, taking $B=6$ gives $\Phi(n)\ll n^{-1/4}(\log n)^{-2}(\log\log n)^3$, and the hypothesis of Theorem~\ref{thm:reduction} holds with $\beta=7/4$.
+\end{theorem}
+
+Theorem~\ref{thm:input} combines three estimates: a pointwise bound for $\Phi(n)$ in terms of the $\ell^2$ mass $I_L$ at a lower level $L$ (Lemma~\ref{lem:B}), a collision bound for $I_L$ (Lemma~\ref{lem:C}), and a version of the \S7 induction of \Tc{} with logarithmic weights (Proposition~\ref{prop:D}). The choice $B=6$ is explained by the exponent count in \S\ref{sec:outline}.
+
+% (I9) Corollary 3: exactly what is used from [T]
+\begin{corollary}\label{cor:uses}
+Theorem~1.3 of \Tc{} follows from: \S\S2--5 of \Tc{} as they stand; Lemma~\ref{lem:A} below in place of \S6; and Lemmas~\ref{lem:B}, \ref{lem:C} and Proposition~\ref{prop:D} below in place of Propositions~7.1 and~7.3. From \S7 of \Tc{} the proof uses only Lemmas~7.2, 7.4, 7.6, 7.7 and equations (7.4), (7.6), (7.26)--(7.28), (7.34)--(7.35), (7.37)--(7.38), (7.44)--(7.52). It uses none of the following: Case~3 of the proof of Proposition~7.8, Lemmas~7.9--7.10, Corollary~6.3, the event (6.2), or the buffer $(C_A)^2\log n$ of (6.6)--(6.8).
+\end{corollary}
+
+The v6/v7 revisions of \Tc{} correct the buffer step of Corollary~6.3 and the statement of Lemma~7.9. Neither is used here.
+
+% (I10) What is not claimed
+This note does not prove a new result about the Collatz map. Its conclusion is Theorem~1.3 of \Tc, and the rate in Theorem~3.1 of \Tc{} becomes weaker: $(\log\log N_0)^{-c}$ in place of $(\log N_0)^{-c}$. The ingredients are Tao's. What changes is that the route to Theorem~1.3 avoids Corollary~6.3, Case~3 of Proposition~7.8, and Lemmas~7.9--7.10. Table~\ref{tab:compare} compares the two routes step by step.
+
+% (I11) Comparison table
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+step & \Tc & this note \\
+\midrule
+Fourier input needed by \S6 & $\Phi(n)\ll_A n^{-A}$ for all $A$ & $\Phi(n)\ll n^{-1/4}(\log n)^{-3/2-\delta}$ \\
+\S6 injectivity & Cor.~6.3 (buffer $n^{O(C_A^2)}$) & overflow count, no buffer (Lemma~\ref{lem:A}) \\
+\S7 renewal estimate & $\ll_A n^{-A}$, Cases 1--3, Lemmas 7.9--7.10 & $\ll_B(\log\log n/\log n)^B$, Cases 1--2 \\
+link from \S7 to $\Phi$ & (7.5) & Lemma~\ref{lem:B} (adds $\sqrt{I_L}\,n^{-1/4}$) \\
+\bottomrule
+\end{tabular}
+\caption{What each step is asked to prove.}\label{tab:compare}
+\end{table}
+
+% (I12) Organisation
+\subsection*{Organisation}
+Section~\ref{sec:ideas} explains the two ideas heuristically. Section~\ref{sec:notation} fixes notation and states every result used from \Tc, so that the dependence recorded in Corollary~\ref{cor:uses} can be checked in one place. Section~\ref{sec:outline} states Lemmas~\ref{lem:A}--\ref{lem:C} and Proposition~\ref{prop:D} and derives Theorems~\ref{thm:reduction} and~\ref{thm:input} from them. Sections~\ref{sec:A}--\ref{sec:D} prove the four results. Section~\ref{sec:remarks} collects remarks, numerical checks and a conjecture.
+
+% ======================================================================
+\section{The key ideas}\label{sec:ideas}
+
+% (K0) Status of this section
+We first explain the two ideas informally. Nothing in this section is used in the proofs; precise statements are in \S\ref{sec:outline}, and the notation is fixed in \S\ref{sec:notation}.
+
+\subsection{Why the buffer in \S6 can be dropped}
+
+% (K1) What the buffer does in [T]
+In \S6 of \Tc, the odd steps of an orbit are stopped once the accumulated power of $2$ passes $3^n$ by a buffer, so that $2^{-l}=n^{O(C_A^2)}3^{-n}$ \T{(6.6)--(6.8)}. The buffer guarantees that distinct step sequences land in distinct residue classes modulo $3^n$ \T{Corollary 6.3}, and the final estimate of \S6 loses the factor $n^{O(C_A^2)}$. Absorbing that factor is the only reason \S6 of \Tc{} needs $\Phi(n)\ll_A n^{-A}$ for every $A$.
+
+% (K2) What Lemma A does instead
+Lemma~\ref{lem:A} stops with no buffer, at the first time the accumulated exponent reaches $T=\lceil n\log_2 3\rceil$. Distinct step sequences can then share a residue class. Instead of ruling this out, Lemma~\ref{lem:A} counts it: on the event that the truncated sum $S_k$ is at most $K$, each residue class modulo $3^n$ receives mass at most $(K+1)3^{-n}$, with no constant and no power of $n$. What remains is a factor $n^{1/4}$ from summing over the stopping index and a factor $(K+1)^{1/2}$ from the truncation. Both are fixed powers, so a Fourier bound of size $n^{-1/4}$ times logarithms is enough to beat them.
+
+\subsection{Why logarithmic weights remove Case~3}
+
+% (K3) The setting of [T, Section 7], in one paragraph
+In \S7 of \Tc{} the quantity to bound is an expectation over a renewal walk in $\Z^2$. At \emph{white} points the walk gains a fixed factor $e^{-\eta}$, where $\eta=2\varepsilon^3$ and $\varepsilon$ is Tao's small absolute constant; \emph{black} points lie in triangles \T{Lemma 7.4}. The induction weights its bound by a function of the distance $m$ to the end of the walk. A walk that enters a triangle at depth $s$ must travel about $s/4$ steps before it can reach a white point \T{(7.48), (7.50)}.
+
+% (K4) Why polynomial weights force Case 3
+With Tao's weight $m^{-A}$, a crossing of length $r$ costs the factor $(1-r/m)^{-A}\approx e^{Ar/m}$. This is $1+o(1)$ only when $r\approx s/4=o(m/A)$, which is why Case~2 of \Tc{} is restricted to $s\le m/\log^2m$. Deeper triangles, with $s$ up to $\frac{\log9}{\log2}m$, then require collecting $O_{A,\varepsilon}(1)$ white points after the exit. That is the content of Case~3 and Lemmas~7.9--7.10.
+
+% (K5) Why logarithmic weights do not
+With the weight $(\log m)^{-B}$, any crossing with $r\le0.85m$ costs only $(\log m/\log(m-r))^B=1+O(B/\log m)$, uniformly in the depth. A single white exit point, reached with probability at least an absolute constant $c_2>0$, pays for this once $\log m\gg B/\varepsilon^3$. So Case~2 covers every depth.
+
+% (K6) The one input at large depth, and the price
+The only input needed at large depth is (7.51) for arbitrary $s$. Tao uses it the same way: in the proof of Lemma~7.9 (p.~51, just after (7.59)) he applies the proof of (7.51) at an arbitrary entry point of an arbitrary triangle, with no restriction on depth. The price is that Proposition~\ref{prop:D} gives only $(\log\log n/\log n)^B$ in place of $n^{-A}$. By \S\ref{sec:ideas}.1 that is enough.
+
+\subsection{Why the powers of $n$ cancel}
+
+% (K7) The two n^{1/4}'s, and where the log margin comes from
+Lemma~\ref{lem:A} costs a factor $n^{1/4}$, and Lemma~\ref{lem:B} gains a factor $n^{-1/4}$. These cancel exactly. Both are square roots of a local-limit scale: the spread of the stopping index in Lemma~\ref{lem:A}, and the spread of $D_h=a_{[1,n-L]}$ modulo $\omega_L=2\cdot3^{L-1}$ in Lemma~\ref{lem:B}. What survives is logarithmic. The margin $\beta>3/2$ in Theorem~\ref{thm:reduction} comes from the loss $(n^{1/4}\Phi)^{2q/(2q+1)}$ in the truncation step of Lemma~\ref{lem:A}, which is close to a $\tfrac23$-power when $q$ is near $1$.
+
+\subsection{Where the two halves meet}
+
+% (K8) The product I_L * Pi_xi
+In Lemma~\ref{lem:B} the bound for $\Phi(n)^2$ is a product $I_L\sup_\xi\Pi_\xi$, and this product is where the two halves of the argument meet. Lemma~\ref{lem:C} controls $I_L$, an arithmetic quantity at the small level $L\approx\tfrac12\log_3n$. Proposition~\ref{prop:D} controls $\Pi_\xi$, the renewal quantity of \S7 of \Tc{} truncated at $J\approx(n-L)/2$. On average over units $\xi$, $\Pi_\xi$ is tiny: computed for the ten pairs $(n,L)$ with $7\le n\le13$ of \S9.2, its mean over units equals $2^{-J}$.
+% ======================================================================
+\section[Notation and results used from {\Tc}]{Notation and results used from \Tc}\label{sec:notation}
+
+\subsection{Notation}
+
+% (N1) Conventions
+We write $e(x):=e^{2\pi i x}$ and, for real $x>0$, $[x]:=\{1,\dots,\lfloor x\rfloor\}$. The symbols $X\ll Y$ and $X=O(Y)$ mean $|X|\le CY$ for an absolute constant $C$; a subscript, as in $\ll_B$, means that $C$ may depend on $B$. The letters $c$ and $C$ denote absolute constants, $c$ small and $C$ large, whose values may change from line to line.
+
+% (N2) The random walk
+Let $a_1,a_2,\dots$ be independent copies of $\Geom(2)$, so $\P(a=k)=2^{-k}$ for $k\ge1$, and write $a_{[i,j]}:=a_i+\dots+a_j$, following \T{(1.6)}.
+
+% (N3) The Syracuse random variable
+Following \T{(1.29)}, put
+\[
+X_n:=\sum_{j=1}^{n}3^{j-1}2^{-a_{[1,j]}}\ \bmod 3^n,\qquad\text{so that } X_n\equiv\Syrac(\Z/3^n\Z).
+\]
+Here $2^{-1}$ is the inverse of $2$ modulo $3^n$. The variable $X_n$ is the offset accumulated by $n$ odd steps of the Syracuse map, read modulo $3^n$.
+
+% (N4) Characteristic function and Phi
+For $\xi\in\Z/3^n\Z$ let $\varphi_n(\xi):=\E\,e(\xi X_n/3^n)$; its modulus is the left-hand side of \T{(1.28)}. Define
+\[
+\Phi(n):=\sup_{3\nmid\xi}|\varphi_n(\xi)|.
+\]
+This is the largest Fourier coefficient of $X_n$ at a frequency that sees the full modulus $3^n$. Tao's Proposition~1.17 is the statement $\Phi(n)\ll_A n^{-A}$.
+
+% (N5) Collision and l^2 mass
+For $L\ge1$ define
+\[
+C_L:=3^L\sum_{x\in\Z/3^L\Z}\P(X_L=x)^2,\qquad I_L:=\sum_{\substack{\xi\bmod 3^L\\ 3\nmid\xi}}|\varphi_L(\xi)|^2 .
+\]
+$C_L$ is the collision probability of $X_L$, normalised so that the uniform distribution gives $1$; $I_L$ is the $\ell^2$ mass of $\varphi_L$ on frequencies not divisible by $3$. By Plancherel, $\sum_{\xi\bmod 3^L}|\varphi_L(\xi)|^2=C_L$. By \T{(1.23)}, the frequencies divisible by $3$ contribute $\sum_{3\mid\xi}|\varphi_L(\xi)|^2=C_{L-1}$. Hence
+\[
+I_L=C_L-C_{L-1}\le C_L .
+\]
+
+% (N6) The law of X_n and the oscillation
+Write $\mu_n(Y):=\P(X_n=Y)$ for $Y\in\Z/3^n\Z$. For $1\le m\le n$ and $g\colon\Z/3^n\Z\to\mathbb R$, the oscillation of \T{(1.27)} is
+\[
+\Osc_{m,n}(g):=\sum_{Y\in\Z/3^n\Z}\Big|\,g(Y)-3^{m-n}\!\!\sum_{\substack{Y'\in\Z/3^n\Z\\ Y'\equiv Y\bmod 3^m}}\!\! g(Y')\Big|.
+\]
+It measures how far $g$ is from being constant on the cosets of $3^m\Z/3^n\Z$. It is a seminorm, and $\Osc_{m,n}(g)\le2\sum_Y|g(Y)|$.
+
+% (N7) The order of 2
+Put $\omega_L:=2\cdot3^{L-1}$. Since $2$ is a primitive root modulo $3^L$, $\omega_L$ is the order of $2$ in $(\Z/3^L\Z)^\times$.
+
+% (N8) Splitting identity and the positive-kernel inequality
+\begin{lemma}[Splitting]\label{lem:split}
+For $0\le k\le n$,
+\begin{equation}\label{eq:split}
+X_n\equiv \sum_{j=1}^{k}3^{j-1}2^{-a_{[1,j]}}\;+\;3^{k}2^{-a_{[1,k]}}\,X'_{n-k}\pmod{3^n},\qquad X'_{n-k}:=\sum_{i=1}^{n-k}3^{i-1}2^{-a_{[k+1,k+i]}},
+\end{equation}
+where $X'_{n-k}$ is independent of $(a_1,\dots,a_k)$ and has the law of $X_{n-k}$. Consequently
+\begin{equation}\label{eq:kernel}
+|\varphi_n(\xi)|\ \le\ \E\,\big|\varphi_{n-k}\big(\xi\,2^{-a_{[1,k]}}\big)\big| .
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+The identity \eqref{eq:split} is a rearrangement of the definition of $X_n$, and $X'_{n-k}$ is built from $a_{k+1},a_{k+2},\dots$ alone. For \eqref{eq:kernel}, take $\E[\,\cdot\,|\,a_1,\dots,a_k]$ in $e(\xi X_n/3^n)$ and apply the triangle inequality.
+\end{proof}
+
+The case $k=1$ of \eqref{eq:split} is the recursion behind \T{Lemma 1.12}.
+
+\begin{lemma}[Monotonicity]\label{lem:mono}
+$\Phi(n)\le\Phi(n-1)$ for $n\ge2$.
+\end{lemma}
+
+\begin{proof}
+Use \eqref{eq:kernel} with $k=1$. Since $\xi2^{-a_1}$ is a unit modulo $3^{n-1}$, each term is at most $\Phi(n-1)$.
+\end{proof}
+
+This is known: it is Theorem~2.1(d) of Wakaura \cite{Wak26}. We include the proof only because Lemma~\ref{lem:A} uses it.
+
+% (N9) Objects for Lemma B
+\subsubsection*{Objects used in Lemma~\ref{lem:B}}
+Fix $n$ and a unit $\xi\in(\Z/3^n\Z)^\times$. Let $\chi=\chi_{n,\xi}\colon\Z[\tfrac12]\to\mathbb C$ be the character $\chi(x):=e(-\xi x/3^n)$ of \T{(7.1)}, and let
+\[
+f(x,b):=\E\big[\chi\big(x(2^{a_2}+3)\big)\,\big|\,a_1+a_2=b\big]
+\]
+as in \T{(7.4)}. For $1\le L\le n-2$ put $h:=n-L$, $J:=\lfloor h/2\rfloor$ and $b_j:=a_{2j-1}+a_{2j}$, and define
+\[
+\Pi_\xi=\Pi_{n,L,\xi}:=\E\prod_{j=1}^{J}\Big|f\big(3^{2j-2}2^{-b_{[1,j]}},\,b_j\big)\Big|^2 .
+\]
+This is the square of the paired product in \T{(7.5)}, truncated after $J$ pairs. The character $\chi_{n,\xi}$, and hence each argument $3^{2j-2}2^{-b_{[1,j]}}$, carries the scaling by $\xi$, so $\Pi_\xi$ depends on $\xi$; this is why Lemma~\ref{lem:B} takes a supremum over $\xi$.
+
+% (N10) Objects for Proposition D
+\subsubsection*{Objects used in Proposition~\ref{prop:D}}
+Let $\varepsilon\in(0,\tfrac1{100})$ be Tao's small absolute constant from \T{\S7}. With $\theta(j,l)$ as in \T{(7.8)}, a point $(j,l)\in[n/2]\times\Z$ is \emph{black} if $|\theta(j,l)|\le\varepsilon$ and \emph{white} otherwise \T{(7.9)}; write $W=W_{n,\xi}$ for the white set. Put
+\[
+M:=\lfloor n/2\rfloor,\qquad \eta:=2\varepsilon^3,\qquad W^{(J)}:=W\cap([J]\times\Z),
+\]
+with $J$ as above, and note that $M-J\le(L+1)/2$. With $\Hold$ and $v_1,v_2,\dots$ as in Results~\ref{res:hold} and~\ref{res:renewal} below, and $v_{[1,0]}:=0$, define
+\begin{equation}\label{eq:QJ}
+Q^{(J)}(j,l):=\E\prod_{k\ge0}\exp\big(-\eta\,1_{W^{(J)}}\big((j,l)+v_{[1,k]}\big)\big),
+\qquad
+Q^{(J)}(p)=e^{-\eta 1_{W^{(J)}}(p)}\,\E\,Q^{(J)}(p+\Hold).
+\end{equation}
+This is \T{(7.34)--(7.35)} with $W$ truncated at $j\le J$ and $\varepsilon^3$ replaced by $\eta$.
+
+\subsection{Results quoted from \Tc}
+% (R0) Scope of this subsection
+We state here, in the notation above, every result from \Tc{} that the proofs use in a specific form. The proof of Theorem~\ref{thm:reduction} also follows \S\S3 and~5 of \Tc{} as they stand; the single point where it changes an input is identified in \S\ref{sec:outline}.
+
+\begin{tresult}[{\T{(1.23)}}]\label{res:reduce}
+For $k\le n$, the reduction $X_n\bmod 3^k$ has the law of $X_k$.
+\end{tresult}
+
+\begin{tresult}[{\T{Lemma 2.2(ii)}}]\label{res:chernoff}
+For $N\in\mathbb N$ and $\lambda\ge0$,
+\[
+\P\big(|a_{[1,N]}-2N|\ge\lambda\big)\ll G_N(c\lambda),\qquad G_N(x):=\exp(-x^2/N)+\exp(-|x|).
+\]
+\end{tresult}
+
+\begin{tresult}[{\T{Lemma 6.2}}]\label{res:inject}
+For each $N$, the offset map $F_N(a_1,\dots,a_N):=\sum_{m=1}^{N}3^{N-m}2^{-a_{[m,N]}}$ of \T{(1.5)} is injective from $(\mathbb N+1)^N$ to $\Z[\tfrac12]$.
+\end{tresult}
+
+\begin{tresult}[{\T{(7.6) and Lemma 7.2}}]\label{res:white}
+$|f(x,b)|\le1$ always, and if $(j,l)$ is white then $|f(3^{2j-2}2^{-l},3)|\le\exp(-\varepsilon^3)$.
+\end{tresult}
+
+\begin{tresult}[{\T{(7.11) and Lemma 7.4}}]\label{res:triangles}
+A \emph{triangle} is a set
+\[
+\Delta=\{(j,l):\ j\ge j_\Delta,\ l\le l_\Delta,\ (j-j_\Delta)\log9+(l_\Delta-l)\log2\le s_\Delta\}
+\]
+with $(j_\Delta,l_\Delta)\in(\mathbb N+1)\times\Z$ and $s_\Delta\ge0$. The black set is a disjoint union of triangles $\Delta\in\mathcal T$, each contained in $[\frac n2-\frac1{10}\log\frac1\varepsilon]\times\Z$, and any two of them are at Euclidean distance at least $\frac1{10}\log\frac1\varepsilon$.
+\end{tresult}
+
+\begin{tresult}[{\T{\S7.3 and Lemma 7.6}}]\label{res:hold}
+Extend $b_1,b_2,\dots$ to an infinite iid sequence. The \emph{holding time} is $\Hold:=(j,b_{[1,j]})$, where $j$ is the least index with $b_j=3$. Its first coordinate has law $\Geom(4)$. $\Hold$ has an exponential tail, is not supported on any coset of a proper subgroup of $\Z^2$, and has mean $(4,16)$.
+\end{tresult}
+
+\begin{tresult}[{\T{(7.26)--(7.28)}}]\label{res:renewal}
+If $v_1,v_2,\dots$ are iid copies of $\Hold$, then the random set $\{(j,b_{[1,j]}):\ b_j=3\}$ has the same law as $\{v_{[1,k]}:\ k\ge1\}$.
+\end{tresult}
+
+\begin{tresult}[{\T{Lemma 7.7}}]\label{res:passage}
+Write $v_k=(j_k,l_k)$. For $s\in\mathbb N$ let $\mathbf k$ be the least positive integer with $l_{[1,\mathbf k]}>s$. Then for all $j,l\in\mathbb N$ with $l>s$,
+\[
+\P\big(v_{[1,\mathbf k]}=(j,l)\big)\ll\frac{e^{-c(l-s)}}{(1+s)^{1/2}}\,G_{1+s}\big(c(j-\tfrac s4)\big).
+\]
+\end{tresult}
+
+\begin{tresult}[{\T{(7.50)--(7.52)}}]\label{res:exit}
+There are absolute constants $C_1$ and $c_2>0$, independent of $\varepsilon$, with the following property. Let $(j,l)\in\Delta\in\mathcal T$, put $s:=l_\Delta-l$, and let $\mathbf k$ be the first passage time of Result~\ref{res:passage}. Then
+\[
+\P\Big((j,l)+v_{[1,\mathbf k]}\in\big\{(j',l'):\ |j'-j-\tfrac s4|\le C_1\sqrt{1+s},\ l_\Delta<l'\le l_\Delta+C_1\big\}\Big)\ge c_2,
+\]
+and, for $\varepsilon$ small enough, every point of this set lies outside $\Delta$ within distance $O(1)$ of it and is therefore white. Moreover $s\le\frac{\log9}{\log2}\,(M-j)$.
+\end{tresult}
+
+% (R1) The one robustness note a referee will look for
+\begin{remark}\label{rem:exit-any-depth}
+In \Tc, (7.50)--(7.51) are stated inside Case~2 of the proof of Proposition~7.8, where $s\le m/\log^2m$. Their proof uses only (7.11), Lemma~7.4 and Lemma~7.7, none of which restricts $s$, so Result~\ref{res:exit} holds for every $s\ge0$. Tao uses it the same way: in the proof of Lemma~7.9 (p.~51, just after (7.59)) he applies the proof of (7.51) at an arbitrary entry point of an arbitrary triangle. The bound on $s$ is \T{(7.52)}, which follows from Lemma~7.4 alone.
+\end{remark}
+% ======================================================================
+\section{Outline of the proof}\label{sec:outline}
+
+% (O0) Plan of the section
+We state the four results proved in \S\S\ref{sec:A}--\ref{sec:D}, and then derive Theorems~\ref{thm:reduction} and~\ref{thm:input} from them.
+
+% (O1) Lemma A: the reworked Section 6 of [T]
+\begin{lemmaL}\label{lem:A}
+There are absolute constants $c>0$, $C$ and $n_0$ with the following property. Let $n\ge n_0$, $0.9n\le m\le n$, $K\ge1$ and $0<q<1$. Then
+\[
+\Osc_{m,n}(\mu_n)\ \le\ 2e^{-cn}\;+\;2c_qK^{-q}\;+\;C\,n^{1/4}\,(K+1)^{1/2}\,\Phi(\lceil n/20\rceil),
+\]
+where $c_q:=3^{-q}\rho_q/(1-\rho_q)$ and $\rho_q:=3^q/(2^{1+q}-1)<1$.
+\end{lemmaL}
+
+% (O2) Lemma B: pointwise bound from the l^2 mass
+\begin{lemmaL}\label{lem:B}
+For $n\ge4$ and $1\le L\le n-3$, with $h=n-L$ and $\Pi_\xi$ as in \S\ref{sec:notation},
+\begin{equation}\label{eq:lemB}
+\Phi(n)^2\ \le\ \Big(\frac{1}{\omega_L}+\frac{1}{\sqrt{\pi(h-1)}}\Big)\,I_L\,\sup_{3\nmid\xi}\Pi_\xi .
+\end{equation}
+Since $\Pi_\xi\le1$, this contains in particular the bound $\Phi(n)^2\le\big(\frac1{\omega_L}+\frac1{\sqrt{\pi(h-1)}}\big)I_L$.
+\end{lemmaL}
+
+% (O3) Lemma C: collision bound
+\begin{lemmaL}\label{lem:C}
+For every $L\ge1$,
+\[
+I_L\le C_L\le2\big(1+\tfrac L3\big)\big(\sqrt{2L+1}+4.45\big)^2\ \sim\ \tfrac43L^2 .
+\]
+\end{lemmaL}
+
+% (O4) Proposition D: polylogarithmic version of [T, Proposition 7.3]
+\begin{propL}\label{prop:D}
+There are absolute constants $C_3,C_4$ such that the following holds for every $B\ge1$. Let
+\[
+m_0':=\max\big(100L,\ C_4,\ \exp(C_3B/\varepsilon^3)\big),
+\]
+and suppose $1\le L\le n-3$ and $m_0'\le M/2$. Then for every unit $\xi$, with $Q^{(J)}$ as in \eqref{eq:QJ},
+\[
+\Pi_\xi\ \le\ \E\,Q^{(J)}(\Hold)\ \ll\ \Big(\frac{\log m_0'}{\log n}\Big)^{B}.
+\]
+\end{propL}
+
+We now prove Theorems~\ref{thm:reduction} and~\ref{thm:input} from Lemmas~\ref{lem:A}--\ref{lem:C} and Proposition~\ref{prop:D}.
+
+\subsection{Proof of Theorem~\ref{thm:input}}
+
+% (O5) Choice of L and assembly
+Let $n$ be large, fix $B\ge1$, and take $L:=\lceil\tfrac12\log_3n\rceil+1$. Then $\frac1{\omega_L}\le\frac1{2\sqrt n}$, $L\le\log n$, and $h-1=n-L-1\ge n/2$. Lemma~\ref{lem:B} gives
+\[
+\Phi(n)^2\le\Big(\frac1{2\sqrt n}+\sqrt{\frac{2}{\pi n}}\Big)\,I_L\,\sup_\xi\Pi_\xi .
+\]
+Lemma~\ref{lem:C} gives $I_L\ll L^2\ll(\log n)^2$. Since $m_0'\ll_B\log n$, Proposition~\ref{prop:D} applies for $n$ large and gives $\sup_\xi\Pi_\xi\ll_B(\log\log n/\log n)^B$. Therefore
+\[
+\Phi(n)\ll_B n^{-1/4}(\log n)^{1-B/2}(\log\log n)^{B/2}.
+\]
+Smaller $n$ are absorbed into the implied constant, since $\Phi\le1$. This proves Theorem~\ref{thm:input}. \qed
+
+% (O6) Exponent bookkeeping
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+quantity & contribution \\
+\midrule
+needed by Theorem~\ref{thm:reduction} & $\Phi\ll n^{-1/4}(\log n)^{-\beta}$ with $\beta>3/2$ \\
+local limit bound for $D_h\bmod\omega_L$ (Lemma~\ref{lem:B}) & $n^{-1/4}$ \\
+$\sqrt{I_L}$, with $I_L=O(L^\kappa)$ (Lemma~\ref{lem:C}: $\kappa=2$) & $(\log n)^{\kappa/2}$ \\
+$\sqrt{\sup_\xi\Pi_\xi}$ (Proposition~\ref{prop:D}) & $(\log n)^{-B/2+o(1)}$ \\
+net & $\beta=B/2-\kappa/2-o(1)$, so $\beta>3/2\iff B>\kappa+3$ \\
+\bottomrule
+\end{tabular}
+\caption{Exponent bookkeeping for Theorem~\ref{thm:input}.}\label{tab:exponents}
+\end{table}
+
+With $\kappa=2$ we need $B>5$. We take $B=6$, which gives $\beta=2-o(1)>3/2$; in particular the hypothesis of Theorem~\ref{thm:reduction} holds with $\beta=7/4$. Since $B$ is arbitrary in Proposition~\ref{prop:D}, any polynomial bound $I_L=O(L^\kappa)$ would do.
+
+\subsection{Proof of Theorem~\ref{thm:reduction}}
+
+% (O7) Corollary A': Lemma A under the hypothesis of Theorem 1
+\begin{corollary}\label{cor:Aprime}
+Assume $\Phi(N)\le C_*N^{-1/4}(\log N)^{-\beta}$ for $N\ge2$, with $\beta>3/2$. Fix $q\in\big(\tfrac1{2(\beta-1)},1\big)$ and put $\gamma:=\tfrac{2q\beta}{2q+1}>1$. Then
+\[
+\Osc_{m,n}(\mu_n)\ll(\log n)^{-\gamma}\qquad(0.9n\le m\le n).
+\]
+\end{corollary}
+
+\begin{proof}
+Let $\Psi:=n^{1/4}\Phi(\lceil n/20\rceil)\ll(\log n)^{-\beta}$, and take $K:=\Psi^{-1/(q+1/2)}$ in Lemma~\ref{lem:A}. Then $K^{-q}=\Psi^{2q/(2q+1)}$ and $n^{1/4}K^{1/2}\Phi(\lceil n/20\rceil)=K^{1/2}\Psi=\Psi^{2q/(2q+1)}$. The condition $q>\frac1{2(\beta-1)}$ is equivalent to $\gamma>1$.
+\end{proof}
+
+% (O8) Step (a): from 0.9n <= m to general m
+\emph{(a) General $m$.} Exactly as at the start of \S6 of \Tc, let $m=m_0<m_1<\dots<m_r=n'$ with $m_{i+1}:=\min(n',\lfloor10m_i/9\rfloor)$. By Result~\ref{res:reduce} and the triangle inequality,
+\[
+\Osc_{m,n'}(\mu_{n'})\le\sum_i\Osc_{m_i,m_{i+1}}(\mu_{m_{i+1}}),
+\]
+since lifting uniformly from level $m_{i+1}$ to level $n'$ preserves $\ell^1$ distances. Each block satisfies $0.9m_{i+1}\le m_i$, and for $m\ge90$ we have $r\le1+\log(n'/m)/\log1.1$. Hence, by Corollary~\ref{cor:Aprime},
+\begin{equation}\label{eq:osc-general}
+\Osc_{m,n'}(\mu_{n'})\ll\big(1+\log(n'/m)\big)(\log m)^{-\gamma}\qquad(90\le m\le n').
+\end{equation}
+
+% (O9) Step (b): through Section 5 of [T]
+\emph{(b) Section~5 of \Tc.} Section~5 of \Tc{} derives the first-passage estimates (1.19)--(1.20) of Proposition~1.11 from Proposition~1.14. We follow it verbatim and change only that input.
+\begin{enumerate}
+\item \emph{Where the input enters.} Proposition~1.14 is used once in \S5 of \Tc, in the proof of (5.20), with $(m,n')=(m_0,\,n-m_0)$ and $n\in I_y\subset[m_0,n_0]$.
+\item \emph{The scales.} By (5.1)--(5.2) of \Tc, $m_0\asymp_\alpha\log x$ and $n_0/m_0=O_\alpha(1)$. Hence in \eqref{eq:osc-general} we have $\log(n'/m)=O_\alpha(1)$ and $\log m\asymp_\alpha\log\log x$, so
+\[
+\Osc_{m_0,\,n-m_0}(\mu_{n-m_0})\ll_\alpha(\log\log x)^{-\gamma}.
+\]
+\item \emph{The error in (5.20).} Tao combines this oscillation bound with $c_n=O(1)$ \T{Lemma 5.3}. With our bound in place of Proposition~1.14, (5.20) holds with error $O(\log^{-c}x)+O((\log\log x)^{-\gamma})$.
+\item \emph{The rest of \S5.} Every other error term in \S5 of \Tc{} is $O(\log^{-c}x)$. Following \S5 verbatim, (5.7), and hence (1.20), hold with error $O((\log\log x)^{-\gamma})$. Estimate (1.19) does not use Fourier analysis and is unchanged.
+\end{enumerate}
+Since $\gamma>1$, this is enough: as Tao remarks just after (1.20) (p.~9), a rate $O((\log\log x)^{-1-c})$ is all that the rest of his argument needs.
+
+% (O10) Step (c): through Section 3 of [T]
+\emph{(c) Section~3 of \Tc.} In the proof of \T{Theorem 3.1}, the step $\P(B_{x^\alpha})\ge\P(B_x)-O(\log^{-c}x)$ becomes $\P(B_{x^\alpha})\ge\P(B_x)-O((\log\log x)^{-\gamma})$. In the telescoping sum over $x=y^{\alpha^{j-2}}$ we have $\log\log x=(j-2)\log\alpha+\log\log y$, so
+\[
+\sum_{j\ge1}\big((j-2)\log\alpha+\log\log y\big)^{-\gamma}\ll_\alpha(\log\log y)^{1-\gamma},
+\]
+and $y\ge N_0^{1/\alpha^2}$. Hence $\P(\mathrm{Syr}_{\min}(\mathbf N_x)>N_0)\ll(\log\log N_0)^{-(\gamma-1)}$. The deduction of Theorems~1.6 and~1.3 at the end of \S3 of \Tc{} uses only that this bound tends to $0$ as $N_0\to\infty$. This proves Theorem~\ref{thm:reduction}. \qed
+% ======================================================================
+\section{Proof of Lemma~A: \S6 without the buffer}\label{sec:A}
+
+% (A0) What this section changes in [T]
+This section reruns \S6 of \Tc{} with one change: the stopping threshold has no buffer, and the residue classes that the stopping rule fails to separate are counted instead of excluded.
+
+% (A0') Idea of proof
+\emph{Idea of proof.} Stop the walk $a_{[1,i]}$ the first time it reaches $T=\lceil n\log_23\rceil$, and split $X_n$ at that time into a head, which depends on the steps so far, and an independent tail with the law of $X$ at a lower level. Discard the rare events where the stop comes late or the head is large. On what remains, the tail contributes a factor $\Phi(\lceil n/20\rceil)$ on the Fourier side; the head contributes, through a direct count of integers in a residue class, mass at most $(K+1)3^{-n}$ to each class; and summing over the stopping data costs $n^{1/4}$.
+
+\begin{proof}[Proof of Lemma~\ref{lem:A}]
+\textbf{Step 0: zero-buffer stopping time.} Put
+\[
+T:=\lceil n\log_2 3\rceil,\qquad \tau:=\min\{i\ge1:\ a_{[1,i]}\ge T\},\qquad \mathbf u:=\tau-1,\qquad \mathbf l:=a_{[1,\tau]}.
+\]
+Thus $\mathbf u$ is the first index with $a_{[1,\mathbf u+1]}\ge T$, so $a_{[1,\mathbf u]}<T\le a_{[1,\mathbf u+1]}=\mathbf l$, and
+\begin{equation}\label{eq:A-noBuffer}
+2^{-\mathbf l}\le 2^{-T}\le 3^{-n}.
+\end{equation}
+Unlike \T{(6.6)--(6.8)}, there is no buffer term. Let $k_{\max}:=\lfloor0.85n\rfloor$. Then $\{\mathbf u>k_{\max}\}=\{a_{[1,k_{\max}+1]}<T\}$. Since $2(k_{\max}+1)\ge1.7n\ge T+0.1n$, Result~\ref{res:chernoff} gives
+\begin{equation}\label{eq:A-late}
+\P(\mathbf u>k_{\max})\le e^{-cn}.
+\end{equation}
+
+\textbf{Step 1: splitting.} On $\{\mathbf u=k\}$ with $k\le k_{\max}$ (so $k+1\le n$), Lemma~\ref{lem:split} with $k+1$ in place of $k$ gives
+\begin{equation}\label{eq:A-split}
+X_n\equiv S_k+3^{k+1}2^{-\mathbf l}X'\pmod{3^n},\qquad S_k:=\sum_{j=1}^{k+1}3^{j-1}2^{-a_{[1,j]}}\in\Z[\tfrac12],
+\end{equation}
+where $X'=X'_{n-k-1}$ depends only on $a_{k+2},\dots,a_n$. It is therefore independent of $a_1,\dots,a_{k+1}$, and so of $S_k$, $\mathbf l$ and the event $\{\mathbf u=k\}$.
+
+\textbf{Step 2: truncating the head.} As real numbers, $S_k\le S_\infty:=\sum_{j\ge1}3^{j-1}2^{-a_{[1,j]}}$. For $0<q<1$ we have $(\sum x_j)^q\le\sum x_j^q$ and $\E\,2^{-qa}=1/(2^{1+q}-1)$. Hence
+\[
+\E S_\infty^q\le\sum_{j\ge1}3^{q(j-1)}(2^{1+q}-1)^{-j}=3^{-q}\sum_{j\ge1}\rho_q^{\,j}=c_q .
+\]
+Here $\rho_0=\rho_1=1$, and $\log\rho_q$ is strictly convex with derivative $\log3-2\log2<0$ at $q=0$, so $\rho_q<1$ on $(0,1)$. By Markov's inequality, $\P(S_\infty>K)\le c_qK^{-q}$. (The variable $S_\infty$ is a critical perpetuity, since $\E[3\cdot2^{-a}]=1$, and its tail is of order $1/K$. The moment bound above is enough for us.)
+
+\textbf{Step 3: decomposition.} For $k\le k_{\max}$ and $l\ge T$ let
+\[
+G_{k,l}:=\{\mathbf u=k,\ \mathbf l=l,\ S_k\le K\},\qquad g_{k,l}(Y):=\P(\{X_n=Y\}\cap G_{k,l}).
+\]
+The event $G_{k,l}$ is determined by $a_1,\dots,a_{k+1}$. We have $\mu_n=\sum_{k\le k_{\max},\,l\ge T}g_{k,l}+r$ with $r\ge0$ and $\sum_Yr(Y)\le\P(\mathbf u>k_{\max})+\P(S_\infty>K)$. Therefore
+\begin{equation}\label{eq:A-decomp}
+\Osc_{m,n}(\mu_n)\le 2e^{-cn}+2c_qK^{-q}+\sum_{k\le k_{\max}}\sum_{l\ge T}\Osc_{m,n}(g_{k,l}).
+\end{equation}
+
+\textbf{Step 4: Fourier side.} For $g\colon\Z/3^n\Z\to\mathbb R$ put $\hat g(\xi):=\sum_Yg(Y)e(-\xi Y/3^n)$. Averaging over cosets of $3^m\Z/3^n\Z$ multiplies $\hat g$ by $1_{\xi\in3^{n-m}\Z}$. By Cauchy--Schwarz and Plancherel (this is the computation following \T{(6.10)}),
+\begin{equation}\label{eq:A-osc}
+\Osc_{m,n}(g)\le\Big(\sum_{\xi\notin3^{n-m}\Z}|\hat g(\xi)|^2\Big)^{1/2}.
+\end{equation}
+By \eqref{eq:A-split} and the independence in Step~1,
+\[
+\hat g_{k,l}(\xi)=\E\big[e(-\xi S_k/3^n)1_{G_{k,l}}\big]\cdot\E\,e\big(-\xi3^{k+1}2^{-l}X'/3^n\big).
+\]
+For $\xi\notin3^{n-m}\Z$, write $\xi=3^i\xi'$ with $0\le i<n-m$ and $3\nmid\xi'$. By Result~\ref{res:reduce}, $X'\bmod3^{n-k-1-i}$ has the law of $X_{n-k-1-i}$, so the second factor equals $\varphi_{N'}(-\xi'2^{-l})$ with $N':=n-k-1-i$. Now $N'\ge m-k\ge\lceil0.9n\rceil-\lfloor0.85n\rfloor\ge\lceil n/20\rceil$, so by Lemma~\ref{lem:mono} the second factor has modulus at most $\Phi(\lceil n/20\rceil)$. Inserting this into \eqref{eq:A-osc} and dropping the restriction on $\xi$ gives
+\begin{equation}\label{eq:A-fourier}
+\Osc_{m,n}(g_{k,l})\le\Phi(\lceil n/20\rceil)\Big(3^n\sum_{Y}\P\big(\{S_k\equiv Y\}\cap G_{k,l}\big)^2\Big)^{1/2}.
+\end{equation}
+
+\textbf{Step 5: overflow counting (replaces \T{Corollary 6.3}).}
+
+\emph{(5a) Integer encoding.} On $G_{k,l}$ the tuple $(a_1,\dots,a_{k+1})$ has probability exactly $2^{-l}$. Put
+\[
+v:=2^lS_k=\sum_{j=1}^{k+1}3^{j-1}2^{\,l-a_{[1,j]}} .
+\]
+This is a positive integer, since $l\ge a_{[1,j]}$ for $j\le k+1$.
+
+\emph{(5b) Injectivity.} We have $v=2^lF_{k+1}(a_{k+1},\dots,a_1)$, so by Result~\ref{res:inject} distinct tuples give distinct $v$.
+
+\emph{(5c) Counting one class.} Because $2$ is invertible modulo $3^n$, $S_k\equiv Y$ if and only if $v\equiv2^lY\pmod{3^n}$. On $G_{k,l}$ we also have $0<v\le2^lK$. The number of integers in $(0,2^lK]$ in one residue class modulo $3^n$ is at most $2^lK/3^n+1$. By \eqref{eq:A-noBuffer},
+\[
+\P\big(\{S_k\equiv Y\}\cap G_{k,l}\big)\le2^{-l}\big(2^lK3^{-n}+1\big)=K3^{-n}+2^{-l}\le(K+1)3^{-n}.
+\]
+
+\emph{(5d) Summing the squares.} Multiplying by $\P(\{S_k\equiv Y\}\cap G_{k,l})$ and summing over $Y$,
+\[
+3^n\sum_Y\P\big(\{S_k\equiv Y\}\cap G_{k,l}\big)^2\le(K+1)\,\P(G_{k,l})\le(K+1)\,\P(\mathbf u=k,\mathbf l=l).
+\]
+
+\textbf{Step 6: summing over $l$ and $k$.} Memorylessness of $\Geom(2)$ gives the exact identity
+\[
+\P(\mathbf u=k,\ \mathbf l=T+r)=2^{-(r+1)}\,\P(\mathbf u=k)\qquad(r\ge0).
+\]
+Indeed, $\P(\mathbf u=k,\mathbf l=T+r)=\sum_{t<T}\P(a_{[1,k]}=t)\,2^{-(T+r-t)}$ and $\P(\mathbf u=k)=\sum_{t<T}\P(a_{[1,k]}=t)\,2^{-(T-t-1)}$, using $\P(a\ge u)=2^{-(u-1)}$ for $u\ge1$. Hence
+\[
+\sum_{l}\sqrt{\P(\mathbf u=k,\mathbf l=l)}=(1+\sqrt2)\sqrt{\P(\mathbf u=k)} .
+\]
+Next we show $\sum_k\sqrt{\P(\mathbf u=k)}\le Cn^{1/4}$. The overshoot $\mathbf r:=a_{[1,\tau]}-T$ has law $\Geom(2)-1$, so $\E\mathbf r=1$ and $\E\mathbf r^2=3$. The stopping time $\tau\le T$ is bounded, so Wald's identities give $\E a_{[1,\tau]}=2\E\tau$ and $\E(a_{[1,\tau]}-2\tau)^2=2\,\E\tau$, whence $\E\tau=(T+1)/2$. Since $2\tau-T=\mathbf r-(a_{[1,\tau]}-2\tau)$, we get $\E(2\tau-T)^2\le2(3+T+1)$, and so $\E(\mathbf u-T/2)^2\le T+6$. By Cauchy--Schwarz with weights $1+(k-T/2)^2/T$,
+\[
+\sum_k\sqrt{\P(\mathbf u=k)}\le\Big(1+\tfrac{T+6}{T}\Big)^{1/2}\Big(\sum_{k\in\Z}\frac{1}{1+(k-T/2)^2/T}\Big)^{1/2}\le\sqrt3\,\big(1+\pi\sqrt T\big)^{1/2}\le Cn^{1/4}.
+\]
+Combining this with \eqref{eq:A-decomp}, \eqref{eq:A-fourier} and Step~5 proves the lemma.
+\end{proof}
+
+% (A7) Where the n^{1/4} comes from
+\begin{remark}\label{rem:A-quarter}
+The factor $n^{1/4}$ is the square root of the local-limit scale $\sqrt T$ of the stopping index $\mathbf u$; it is the price of slicing by $k$. Numerically, $\sum_k\sqrt{\P(\mathbf u=k)}/n^{1/4}\approx1.78$ for $n$ up to $3200$. The comparison with the buffer of \T{\S6} is made in \S\ref{sec:ideas}.
+\end{remark}
+% ======================================================================
+\section{Proof of Lemma~B: a pointwise bound from the $\ell^2$ mass}\label{sec:B}
+
+% (B0) What the lemma does
+Lemma~\ref{lem:B} bounds the largest Fourier coefficient of $X_n$ by the average ($\ell^2$) size of the characteristic function at a lower level $L$, multiplied by the paired product of \T{\S7.1}. The pairing is what links this lemma to Proposition~\ref{prop:D}; it contributes the factor $\Pi_\xi$.
+
+% (B0') Idea of proof
+\emph{Idea of proof.} Split $X_n$ at $h=n-L$. The head, paired as in \T{\S7.1}, produces the product $Z$; the tail produces $\varphi_L$ at the frequency $\xi2^{-D_h}$. As $D_h$ runs through the residues modulo $\omega_L$, this frequency runs through every unit modulo $3^L$ exactly once, so Cauchy--Schwarz turns the sum into $I_L$. What is left is the largest mass of $D_h$ in a single residue class modulo $\omega_L$, a local-limit quantity of size $1/\omega_L+O(h^{-1/2})$.
+
+\begin{proof}[Proof of Lemma~\ref{lem:B}]
+Let $h:=n-L$ and $D_h:=a_{[1,h]}$. Apply Lemma~\ref{lem:split} with $k=h$ and condition on $a_1,\dots,a_h$:
+\[
+\varphi_n(\xi)=\E\Big[e\Big(\xi\textstyle\sum_{j\le h}3^{j-1}2^{-a_{[1,j]}}/3^n\Big)\,\varphi_L\big(\xi2^{-D_h}\big)\Big].
+\]
+
+\emph{Pairing the head.} As in \T{\S7.1}, on each pair of consecutive terms
+\[
+3^{2j-2}2^{-a_{[1,2j-1]}}+3^{2j-1}2^{-a_{[1,2j]}}=3^{2j-2}2^{-b_{[1,j]}}\big(2^{a_{2j}}+3\big).
+\]
+Condition on $\mathcal F:=\sigma(b_1,\dots,b_J,\ a_h\text{ if }h\text{ is odd})$. Then $D_h$ is $\mathcal F$-measurable, and the $a_{2j}$ are conditionally independent. Since $\chi(x)=e(-\xi x/3^n)$, each pair contributes the complex conjugate of $f(3^{2j-2}2^{-b_{[1,j]}},b_j)$, and the unpaired term (if $h$ is odd) contributes a factor of modulus at most $1$. Writing
+\[
+Z:=\prod_{j\le J}\big|f(3^{2j-2}2^{-b_{[1,j]}},b_j)\big|,
+\]
+we get
+\[
+|\varphi_n(\xi)|\le\E\big[Z\,|\varphi_L(\xi2^{-D_h})|\big]=\sum_{t\in\Z/\omega_L\Z}\E[Z\,1_{D_h\equiv t}]\;|\varphi_L(\xi2^{-t})|,
+\]
+using that $2$ has order $\omega_L$ modulo $3^L$.
+
+\emph{The $\ell^2$ mass.} Since $2$ is a primitive root modulo $3^L$, the map $t\mapsto\xi2^{-t}$ is a bijection from $\Z/\omega_L\Z$ onto $(\Z/3^L\Z)^\times$, so $\sum_t|\varphi_L(\xi2^{-t})|^2=I_L$ exactly. By Cauchy--Schwarz twice,
+\[
+|\varphi_n(\xi)|^2\le I_L\sum_t\E[Z1_{D_h\equiv t}]^2\le I_L\sum_t\E[Z^21_{D_h\equiv t}]\,\P(D_h\equiv t)\le I_L\,\Pi_\xi\,\max_t\P(D_h\equiv t\bmod\omega_L).
+\]
+
+\emph{The local bound for $D_h$.} It remains to bound $\max_t\P(D_h\equiv t)$. The law $p_d:=\P(D_h=d)=\binom{d-1}{h-1}2^{-d}$ (for $d\ge h$) satisfies $p_{d+1}/p_d=d/(2(d-h+1))$, so it is unimodal with maximum
+\[
+p_{2h-1}=\tfrac12\binom{2h-2}{h-1}4^{-(h-1)}\le\frac{1}{2\sqrt{\pi(h-1)}} .
+\]
+For a unimodal sequence with mode $d^*$, bound each term $p_{t+i\omega_L}$ of a progression by the average of $p$ over the adjacent block of length $\omega_L$ lying on its side of $d^*$. These blocks are disjoint, and at most two terms (those within distance $\omega_L$ of $d^*$) are left over. This gives $\sum_{d\equiv t}p_d\le1/\omega_L+2\max_dp_d$. Therefore $\max_t\P(D_h\equiv t)\le\frac1{\omega_L}+\frac1{\sqrt{\pi(h-1)}}$.
+\end{proof}
+
+% ======================================================================
+\section{Proof of Lemma~C: the collision bound}\label{sec:C}
+
+% (C0) What the lemma says, in words
+Lemma~\ref{lem:C} is elementary and self-contained. It says that two independent copies of $X_L$ agree with probability at most of order $L^2$ times the uniform rate $3^{-L}$: collisions are rare because $X_L$ is spread out.
+
+% (C0') Idea of proof
+\emph{Idea of proof.} Encode each step tuple with $a_{[1,L]}=d$ as an odd integer $N$. Distinct tuples give distinct $N$, and tuples landing on the same residue all have $N$ in one class modulo $2\cdot3^L$, so a residue that receives many tuples forces their $N$ to be large. The average size of $N$ is controlled by $\E Y=L/3$. This bounds each slice $d$; Minkowski's inequality sums the slices, and slices with $d>3L$ carry exponentially small weight.
+
+\begin{proof}[Proof of Lemma~\ref{lem:C}]
+Let $D_L:=a_{[1,L]}\ (\ge L)$ and let $Y:=\sum_{j=1}^L3^{j-1}2^{-a_{[1,j]}}\in\mathbb Q$, so that $X_L=Y\bmod3^L$. Put
+\[
+N:=2^{D_L}Y=\sum_{j=1}^L3^{j-1}2^{a_{[j+1,L]}}\in\Z .
+\]
+
+\textbf{Step 1: injectivity.} $N$ is odd, since the $j=L$ term is $3^{L-1}$ and the others are even. Moreover $N-3^{L-1}=2^{a_L}N^{(L-1)}$, where $N^{(L-1)}$ is the corresponding (odd) integer for $(a_1,\dots,a_{L-1})$. So $a_L=v_2(N-3^{L-1})$, and induction recovers the whole tuple from $N$. In particular, for each $d$ the map from tuples with $D_L=d$ to $N$ is injective. (This is \T{Lemma 6.2} in another normalisation.)
+
+\textbf{Step 2: counting one class.} Fix $d$ and $x\in\Z/3^L\Z$. Let $\nu=\nu_d(x)$ be the number of tuples with $D_L=d$ and $X_L=x$, and let $\Sigma=\Sigma_d(x)$ be the sum of their $N$'s. These $N$ are distinct and odd, and all are $\equiv2^dx\pmod{3^L}$, so they lie in a single class modulo $2\cdot3^L$. The $i$-th smallest of them is therefore greater than $(i-1)\,2\cdot3^L$. Hence
+\[
+\Sigma\ \ge\ 3^L\nu(\nu-1)\ \ge\ 3^L(\nu-1)^2\qquad(\nu\ge1).
+\]
+
+\textbf{Step 3: one $D_L$-slice.} Let $\mu_{L,d}(x):=\P(X_L=x,\,D_L=d)=2^{-d}\nu_d(x)$. By Step~2, $\nu\le1_{\nu\ge1}+\sqrt{\Sigma/3^L}$, so
+\[
+\mu_{L,d}(x)^2\le2\cdot2^{-2d}\big(1_{\nu_d(x)\ge1}+\Sigma_d(x)/3^L\big).
+\]
+Sum over $x$ and multiply by $3^L$. The first term gives at most $3^L2^{-2d}\#\{\text{tuples with }D_L=d\}=3^L2^{-d}\P(D_L=d)=:u_d$. The second term gives $2^{-2d}\sum_{\text{tuples},\,D_L=d}N=\E[Y;D_L=d]$. Thus
+\[
+3^L\|\mu_{L,d}\|_2^2\le2\lambda_d,\qquad\lambda_d:=u_d+\E[Y;D_L=d].
+\]
+Moreover $\sum_du_d=3^L\,\E\,2^{-D_L}=1$ and $\sum_d\E[Y;D_L=d]=\E Y=\sum_j3^{j-1}3^{-j}=L/3$.
+
+\textbf{Step 4: Minkowski.} Since $\P(X_L=\cdot)=\sum_d\mu_{L,d}$, we get
+\[
+\sqrt{C_L}\le\sum_{d\ge L}\sqrt{3^L}\,\|\mu_{L,d}\|_2\le\sum_{d\ge L}\sqrt{2\lambda_d}.
+\]
+
+\textbf{Step 5: summing.} For $L\le d\le3L$, Cauchy--Schwarz gives a contribution of at most $\sqrt{2L+1}\sqrt{2(1+L/3)}$.
+
+For $d>3L$, Markov's inequality with $(3/2)^{D_L}$ gives $\E[Y;D_L=d]\le(2/3)^d\,\E[Y(3/2)^{D_L}]$. Here $\E(3/4)^a=3/5$ and $\E(3/2)^a=3$, so
+\[
+\E[Y(3/2)^{D_L}]=\sum_j3^{j-1}(3/5)^j3^{L-j}\le3^L/2 .
+\]
+Also $u_d\le3^L2^{-d}\le\tfrac12 3^L(2/3)^d$ for $d\ge3$. Hence $\lambda_d\le3^L(2/3)^d$, and
+\[
+\sum_{d>3L}\sqrt{2\lambda_d}\le\sqrt2\,3^{L/2}\frac{(2/3)^{(3L+1)/2}}{1-\sqrt{2/3}}=\sqrt2\,(8/9)^{L/2}\,\frac{\sqrt{2/3}}{1-\sqrt{2/3}}\le\sqrt2\cdot4.45 .
+\]
+Adding the two ranges gives $\sqrt{C_L}\le\sqrt{2(1+L/3)}\,(\sqrt{2L+1}+4.45)$. Finally $I_L=C_L-C_{L-1}\le C_L$.
+\end{proof}
+
+% (C6) Pointer to the numerics
+\begin{remark}\label{rem:C-loose}
+The bound is far from the truth: exact computation gives $C_{12}\approx6.80$, against the bound $\approx893$. See \S\ref{sec:remarks} for the computed values and Conjecture~\ref{conj:IL}.
+\end{remark}
+
+% ======================================================================
+\section[Proof of Proposition D]{Proof of Proposition~D: a polylogarithmic version of \T{Proposition 7.3}}\label{sec:D}
+
+% (D0) What this section changes in [T]
+This section reruns the induction of \T{\S7.4} with two changes: the white set is truncated at $j\le J$, and the polynomial weight $\max(r,1)^A$ of \T{(7.37)--(7.38)} is replaced by a logarithmic weight. Section~\ref{sec:ideas}.2 explains why this removes Case~3 of the proof of \T{Proposition 7.8}. Every input from \T{\S7} is stated in \S\ref{sec:notation}.
+
+% (D0') Idea of proof
+\emph{Idea of proof.} Reduce $\Pi_\xi$ to the renewal quantity $Q^{(J)}$. Then show, by an upward induction on the distance $m$ to the horizon $M$, that a weighted supremum of $Q^{(J)}$ does not grow. At a white point the walk gains $e^{-\eta}$ at once (Case~1). At a black point it lies in a triangle, crosses it, and with probability at least $c_2$ exits onto a white point (Case~2). With logarithmic weights a crossing of any depth costs only $1+O(B/\log m)$, which the white exit pays for.
+
+\begin{lemma}[Reduction to a renewal quantity]\label{lem:reductionD}
+For every unit $\xi$, $\Pi_\xi\le\E\,Q^{(J)}(\Hold)$.
+\end{lemma}
+
+\begin{proof}
+By Result~\ref{res:white}, $|f(3^{2j-2}2^{-l},3)|^2\le e^{-2\varepsilon^3}=e^{-\eta}$ when $(j,l)\in W$, and $|f|^2\le1$ always. So
+\[
+\Pi_\xi\le\E\exp\big(-\eta\,\#\{j\le J:\ b_j=3,\ (j,b_{[1,j]})\in W\}\big).
+\]
+Since $j\le J$ in the count, the condition $(j,b_{[1,j]})\in W$ is the same as $(j,b_{[1,j]})\in W^{(J)}$. By Result~\ref{res:renewal}, and the conditioning argument following \T{(7.35)} with $W^{(J)}$ in place of $W$, the right-hand side equals $\E\,Q^{(J)}(\Hold)$.
+\end{proof}
+
+\begin{proof}[Proof of Proposition~\ref{prop:D}]
+The first inequality is Lemma~\ref{lem:reductionD}. It remains to bound $\E\,Q^{(J)}(\Hold)$.
+
+\textbf{Weights.} Let $w(r):=(\log\max(r,3))^B$; this replaces the weight $\max(r,1)^A$ of \T{(7.37)--(7.38)}. We need two facts about $w$. First, for $m\ge e^4$ and $0\le r\le0.85m$ we have $m-r\ge0.15m$ and $\log(1/0.15)<1.9$, so
+\begin{equation}\label{eq:D-weight}
+\frac{w(m)}{w(m-r)}\le\Big(1-\frac{1.9}{\log m}\Big)^{-B}\le\exp\Big(\frac{3.8B}{\log m}\Big).
+\end{equation}
+Second, $w(m)/w(\max(m-r,1))\le(\log m)^B$ for all $r$.
+
+\textbf{The induction.} For $1\le m\le M-1$ set
+\[
+\mathbf Q_m:=\sup_{j\ge M-m,\ j\ge1,\ l\in\Z}w(\max(M-j,1))\,Q^{(J)}(j,l).
+\]
+Since $Q^{(J)}\le1$, we have $\mathbf Q_m\le w(m)$, the analogue of \T{(7.39)}. We claim
+\begin{equation}\label{eq:D-claim}
+\mathbf Q_m\le\mathbf Q_{m-1}\qquad(m_0'<m\le M-1).
+\end{equation}
+
+\textbf{Conclusion from the claim.} Given \eqref{eq:D-claim}, $\mathbf Q_m\le w(m_0')$ for all $m$. Since the first coordinate $j_1$ of $\Hold$ has law $\Geom(4)$ and $j_1\ge1$,
+\[
+\E\,Q^{(J)}(\Hold)\le w(m_0')\Big(\frac1{w(M/2)}+\P(j_1>M/2)\Big)\ll\Big(\frac{\log m_0'}{\log n}\Big)^B .
+\]
+
+\textbf{Reduction of the claim.} To prove \eqref{eq:D-claim}, fix $m\in(m_0',M-1]$, let $j:=M-m\ge1$ and $l\in\Z$. Points with first coordinate greater than $j$ are already covered by $\mathbf Q_{m-1}$, so it suffices to show
+\begin{equation}\label{eq:D-goal}
+Q^{(J)}(j,l)\le\mathbf Q_{m-1}/w(m).
+\end{equation}
+Every point $(j',l')$ with $j'>j$ satisfies $Q^{(J)}(j',l')\le\mathbf Q_{m-1}/w(\max(M-j',1))$. Since $m>m_0'\ge100L>M-J$, we have $j<J$. So $(j,l)$ is either in $W^{(J)}$ (Case~1) or black, in which case by Result~\ref{res:triangles} it lies in some triangle $\Delta\in\mathcal T$ (Case~2). \textbf{There is no third case.}
+
+\textbf{Case 1: $(j,l)\in W^{(J)}$.} By \eqref{eq:QJ},
+\[
+Q^{(J)}(j,l)\le e^{-\eta}\,\frac{\mathbf Q_{m-1}}{w(m)}\,\E R_1,\qquad R_1:=\frac{w(m)}{w(\max(m-j_1,1))}.
+\]
+By \eqref{eq:D-weight}, $\E R_1\le e^{3.8B/\log m}+(\log m)^B(3/4)^{\lfloor0.85m\rfloor}$. With $\log m\ge C_3B/\varepsilon^3$ and $C_3$ a large absolute constant, this is at most $1+\varepsilon^3/2$, and then $e^{-2\varepsilon^3}(1+\varepsilon^3/2)\le1$. This proves \eqref{eq:D-goal} in Case~1.
+
+\textbf{Case 2: $(j,l)\in\Delta\in\mathcal T$, with any depth $s:=l_\Delta-l\ge0$.} Let $\mathbf k$ be the first passage time of Result~\ref{res:passage}, so $l_{[1,\mathbf k]}>s$, and let $P:=(j,l)+v_{[1,\mathbf k]}$. By the strong Markov property (this is \T{(7.45)}), and then \eqref{eq:QJ} applied at $P$,
+\[
+Q^{(J)}(j,l)\le\E\,Q^{(J)}(P)=\E\Big[e^{-\eta1_{W^{(J)}}(P)}\,Q^{(J)}(P+v_{\mathbf k+1})\Big]\le\frac{\mathbf Q_{m-1}}{w(m)}\,\E\Big[e^{-\eta1_{W^{(J)}}(P)}R\Big],
+\]
+where $R:=w(m)/w(\max(m-j_{[1,\mathbf k+1]},1))\ge1$. Using $e^{-\eta y}\le1-\tfrac\eta2y$ for $y\in\{0,1\}$ and $R\ge1$,
+\begin{equation}\label{eq:D-case2}
+\E\big[e^{-\eta1_{W^{(J)}}(P)}R\big]\le\E R-\tfrac\eta2\,\P\big(P\in W^{(J)}\big).
+\end{equation}
+
+\emph{The crossing tail.} By Result~\ref{res:exit}, $s\le\frac{\log9}{\log2}m$, hence $s/4\le0.793m$. Summing the bound of Result~\ref{res:passage} over the second coordinate gives $\P(j_{[1,\mathbf k]}=r)\ll(1+s)^{-1/2}G_{1+s}(c(r-s/4))$. Summing over $r\ge0.8m$ gives $\P(j_{[1,\mathbf k]}\ge0.8m)\ll e^{-cm}$, as stated in \Tc{} after (7.52). The step $j_{\mathbf k+1}$ is a fresh $\Geom(4)$, so $\P(j_{[1,\mathbf k+1]}>0.85m)\ll e^{-cm}$. With \eqref{eq:D-weight},
+\[
+\E R\le e^{3.8B/\log m}+O\big((\log m)^Be^{-cm}\big)\le1+\varepsilon^3c_2/4,
+\]
+once $C_3$ is large; here $c_2$ is the constant of Result~\ref{res:exit}.
+
+\emph{A white exit point.} By Result~\ref{res:exit} and Remark~\ref{rem:exit-any-depth}, with probability at least $c_2$ the point $P$ lies in a set of white points whose first coordinate is at most
+\[
+j+0.793m+C_1\sqrt{1+3.2m}=M-0.207m+C_1\sqrt{1+3.2m}\le M-\tfrac{L+1}2\le J
+\]
+for $m\ge\max(100L,C_4)$, with $C_4$ an absolute constant depending on $C_1$. These points are therefore in $W^{(J)}$, and $\P(P\in W^{(J)})\ge c_2$.
+
+Inserting both bounds into \eqref{eq:D-case2} gives $\E[e^{-\eta1_{W^{(J)}}(P)}R]\le1+\varepsilon^3c_2/4-\varepsilon^3c_2\le1$. This proves \eqref{eq:D-goal} in Case~2, and with it \eqref{eq:D-claim} and the proposition.
+\end{proof}
+
+% (D9) Where the (log log n)^B comes from
+\begin{remark}\label{rem:D-loglog}
+The factor $(\log\log n)^B$ in the bound comes from starting the induction at $m_0'\asymp_BL\asymp\log n$. Below that level white points are not counted, because of the truncation at $J$. The choice $100L$ is generous: the proof uses only that $0.207m-C_1\sqrt{1+3.2m}\ge(L+1)/2$ for $m>m_0'$.
+\end{remark}
+
+% ======================================================================
+\section{Remarks and numerical evidence}\label{sec:remarks}
+
+\subsection{Prior work}
+% (R1) Overlap with Wakaura, and what is new
+That $\Phi$ is non-increasing (Lemma~\ref{lem:mono}), together with the one-step recursion behind it, is due to Wakaura \cite[Theorem~2.1(d)]{Wak26}. The same preprint contains the primitive-root reduction and a collision ($\ell^4$-type) representation, which overlap with parts of Lemmas~\ref{lem:B} and~\ref{lem:C}. The specific inequality \eqref{eq:lemB}, the zero-buffer form of \S6 (Lemma~\ref{lem:A}), the Case-3-free polylogarithmic \S7 (Proposition~\ref{prop:D}) and the $O(L^2)$ collision bound (Lemma~\ref{lem:C}) do not appear there, nor anywhere else we know of. To our knowledge, follow-ups to \Tc{} such as the generalised setting of \cite{GGM} still use superpolynomial Fourier decay. We have not checked whether the present simplification transfers to the framework of \cite{GGM}.
+
+\subsection{Numerical checks}
+% (R2) Status of the numerics
+The following checks were done in floating point. They are sanity checks, not part of the proof.
+
+\begin{itemize}
+\item The law of $X_n$ was computed exactly for $n\le13$ via \T{Lemma 1.12}. The values of $\Phi(n)$ are in Table~\ref{tab:Phi}; they are monotone, consistent with Lemma~\ref{lem:mono}.
+\item The pairing factorisation in the proof of Lemma~\ref{lem:B} was reproduced to about $10^{-13}$ for ten pairs $(n,L)$ with $n\le13$. Inequality \eqref{eq:lemB}, with the weaker constant $0.846/\sqrt{n-L}$ in place of $1/\sqrt{\pi(h-1)}$, showed no violations. Its unweighted form was checked for all $1\le L<n\le10$.
+\item Lemma~\ref{lem:C} was checked for $L\le12$. Steps~1--3 of its proof (decoding, oddness, the class-sum inequality and the per-slice inequality) were also verified by brute-force enumeration for $L\le6$.
+\item For Lemma~\ref{lem:A}: a Monte Carlo estimate of $K\,\P(S_\infty>K)$ is roughly constant in $K$, consistent with the critical $1/K$ tail, and $\sum_k\sqrt{\P(\mathbf u=k)}/n^{1/4}\approx1.78$ for $n$ up to $3200$.
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}c|cccccccccccc@{}}
+\toprule
+$n$ & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 & 13 \\
+\midrule
+$\Phi(n)$ & 0.378 & 0.252 & 0.177 & 0.129 & 0.096 & 0.076 & 0.061 & 0.048 & 0.038 & 0.032 & 0.026 & 0.022 \\
+\bottomrule
+\end{tabular}
+\caption{Values of $\Phi(n)$, from the exact law of $X_n$ computed via \T{Lemma 1.12} (floating point).}\label{tab:Phi}
+\end{table}
+
+\subsection{The collision constant}
+% (R3) Computed C_L against the Lemma C bound
+For $2\le L\le13$, the exact values satisfy $C_L\approx0.466L+1.2$, rising from $2.14$ at $L=2$ to $7.27$ at $L=13$, and $I_L\in[0.462,0.476]$ (with $I_1=2/3$), apparently converging to about $0.475$. Table~\ref{tab:CL} compares these values with the bound of Lemma~\ref{lem:C}.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}cccc@{}}
+\toprule
+$L$ & $C_L$ (computed) & $0.466L+1.2$ & bound of Lemma~\ref{lem:C} \\
+\midrule
+2  & 2.14 & 2.13 & 149.0 \\
+12 & 6.80 & 6.79 & 893.0 \\
+13 & 7.27 & 7.26 & 992.5 \\
+\bottomrule
+\end{tabular}
+\caption{The collision quantity $C_L$, computed from the exact law of $X_L$ via \T{Lemma 1.12} (floating point), against the linear fit and the bound of Lemma~\ref{lem:C}.}\label{tab:CL}
+\end{table}
+
+% (R4) The conjecture
+\begin{conjecture}\label{conj:IL}
+$I_L=O(1)$. In particular $C_L=1+\sum_{j\le L}I_j=O(L)$.
+\end{conjecture}
+
+If Conjecture~\ref{conj:IL} holds, Lemma~\ref{lem:B} alone gives $\Phi(n)\ll n^{-1/4}$, and Proposition~\ref{prop:D} would be needed only with $B>3$. Proving even $C_L=O(L)$ appears to require a bounded-density statement for a critical, overlapping $3$-adic iterated function system: the $\ell^2$ analogue of absolute continuity for Bernoulli convolutions. The elementary argument of Lemma~\ref{lem:C} loses a factor $L$ in the Cauchy--Schwarz over the window $d\in[L,3L]$.
+
+\subsection{What is not claimed}
+% (R5) Short restatement, as the legibility plan asks
+Nothing here improves the conclusion of \Tc; the rate in Theorem~3.1 of \Tc{} actually becomes weaker, $(\log\log N_0)^{-c}$ in place of $(\log N_0)^{-c}$. The superpolynomial bound of Proposition~1.17 of \Tc{} remains true. The point is only that the route to Theorem~1.3 can avoid Corollary~6.3, Case~3 of Proposition~7.8, and Lemmas~7.9--7.10.
+
+\subsection*{Acknowledgement}
+% (R6) Verbatim from the draft
+The approach was prompted by reading the methods of a recent Lean formalization in another area. Two of its devices suggested the ideas here: working with one level adapted to each scale, and using one-sided positive bounds in place of cancellation. Nothing from that formalization is used here.
+
+% ======================================================================
+\printbibliography
+
+\end{document}

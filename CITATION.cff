@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use or discuss this note, please cite it as below."
+title: "A Shorter Route to Tao's Almost-Bounded-Orbits Theorem via a Polylogarithmic Fourier Input"
+authors:
+  - family-names: Humphrey
+    given-names: Nathan
+type: article
+date-released: 2026-11-25
+license: CC-BY-4.0
+abstract: >-
+  Tao's theorem that almost all Collatz orbits attain almost bounded values rests on
+  superpolynomial decay of the characteristic function of the Syracuse random variable.
+  This note shows that a polylogarithmic input, Phi(n) << n^(-1/4) (log n)^(-3/2-delta),
+  already suffices, and supplies it using only Cases 1-2 of Tao's section 7 induction.
+  It is a simplification of Tao's proof, not a new result about the Collatz map.
+keywords:
+  - Collatz conjecture
+  - Syracuse random variable
+  - Fourier decay
+  - almost bounded orbits
+# doi: add the Zenodo DOI here once minted
